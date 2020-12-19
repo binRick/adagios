@@ -24,10 +24,10 @@
 # https://github.com/opinkerfi/adagios/wiki/Profiling-Decorators-within-Adagios
 
 
-import hotshot
+#import hotshot
 import os
 import time
-import settings
+from adagios import settings
 import tempfile
 import random
 
@@ -61,13 +61,14 @@ def profile(log_file):
             (base, ext) = os.path.splitext(log_file)
             base = base + "-" + time.strftime("%Y%m%dT%H%M%S", time.gmtime()) + str(random.randint(1,9999))
             final_log_file = base + ext
-
+            """
             prof = hotshot.Profile(final_log_file)
             try:
                 ret = prof.runcall(f, *args, **kwargs)
             finally:
                 prof.close()
             return ret
+            """
 
         return _inner
     return _outer

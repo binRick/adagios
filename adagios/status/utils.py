@@ -89,7 +89,7 @@ def get_all_backends():
     # TODO: Properly support multiple instances, using split here is not a good idea
     backends = adagios.settings.livestatus_path or ''
     backends = backends.split(',')
-    backends = map(lambda x: x.strip(), backends)
+    backends = [x.strip() for x in backends]
     return backends
 
 
@@ -110,7 +110,7 @@ def livestatus(request):
         try:
             user = userdata.User(request)
             if user.disabled_backends is not None:
-                backends = filter(lambda x: x not in user.disabled_backends, backends)
+                backends = [x for x in backends if x not in user.disabled_backends]
             clear_notification("userdata problem")
         except Exception as e:
             message = "%s: %s" % (type(e), str(e))
@@ -288,7 +288,7 @@ def get_hosts(request, fields=None, *args, **kwargs):
         fields = _DEFAULT_HOST_COLUMNS
 
     # fields should be a list, lets create a Column: query for livestatus
-    if isinstance(fields, (str, unicode)):
+    if isinstance(fields, str):
         fields = fields.split(',')
 
     query.set_columns(*fields)
@@ -478,11 +478,11 @@ def get_statistics(request, *args, **kwargs):
 
     # Calculate percentage of hosts/services that are "ok"
     try:
-        c['service_totals_percent'] = map(lambda x: float(100.0 * x / c['total_services']), c['service_totals'])
+        c['service_totals_percent'] = [float(100.0 * x / c['total_services']) for x in c['service_totals']]
     except ZeroDivisionError:
         c['service_totals_percent'] = [0, 0, 0, 0]
     try:
-        c['host_totals_percent'] = map(lambda x: float(100.0 * x / c['total_hosts']), c['host_totals'])
+        c['host_totals_percent'] = [float(100.0 * x / c['total_hosts']) for x in c['host_totals']]
     except ZeroDivisionError:
         c['host_totals_percent'] = [0, 0, 0, 0]
     

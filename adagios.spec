@@ -5,6 +5,7 @@
 
 %define name adagios
 %define release 1
+%define __python 3
 
 Name: adagios
 Version: 1.6.6
@@ -18,22 +19,14 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildArch: noarch
 Prefix: %{_prefix}
 
-BuildRequires: python2-devel
+BuildRequires: python3-devel
 BuildRequires: python-setuptools
 
 Requires: pynag > 0.9.1
 Requires: httpd
 Requires: mod_wsgi
 Requires: sudo
-Requires: python-simplejson
-
-%if 0%{?rhel} == 6
-Requires: python-django
-# Force django upgrade
-Conflicts: Django < 1.4.0
-%else
-Requires: python2-django16
-%endif
+Requires: python3-simplejson
 
 %description
 Adagios is a web based Nagios configuration interface build to be simple and intuitive in design, exposing less of the clutter under the hood of nagios.
@@ -50,25 +43,28 @@ python setup.py build
 %install
 python setup.py install -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
 mkdir -p %{buildroot}%{_sysconfdir}/httpd/conf.d/
-install %{buildroot}%{python_sitelib}/adagios/apache/adagios.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/adagios.conf
+#install %{buildroot}%{python_sitelib}/adagios/apache/adagios.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/adagios.conf
+install %{buildroot}%{python_sitelib}/usr/lib/python3.9/site-packages/adagios/etc/adagios/adagios.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/adagios.conf
 
 mkdir -p %{buildroot}%{_sysconfdir}/adagios/conf.d/
-install %{buildroot}%{python_sitelib}/adagios/etc/adagios/adagios.conf %{buildroot}%{_sysconfdir}/adagios/
-install %{buildroot}%{python_sitelib}/adagios/etc/adagios/conf.d/okconfig.conf %{buildroot}%{_sysconfdir}/adagios/conf.d/
+install %{buildroot}%{python_sitelib}/usr/lib/python3.9/site-packages/adagios/etc/adagios/adagios.conf %{buildroot}%{_sysconfdir}/adagios/
+install %{buildroot}%{python_sitelib}/usr/lib/python3.9/site-packages/adagios/etc/adagios/conf.d/okconfig.conf %{buildroot}%{_sysconfdir}/adagios/conf.d/
 
 mkdir -p %{buildroot}%{_sysconfdir}/sudoers.d/
-install %{buildroot}%{python_sitelib}/adagios/etc/sudoers.d/adagios %{buildroot}%{_sysconfdir}/sudoers.d/
+install %{buildroot}%{python_sitelib}/usr/lib/python3.9/site-packages/adagios/etc/sudoers.d/adagios %{buildroot}%{_sysconfdir}/sudoers.d/
 
 mkdir -p "%{buildroot}%{_localstatedir}/lib/adagios/"
 mkdir -p "%{buildroot}%{_localstatedir}/lib/adagios/userdata"
-cp -r "%{buildroot}%{python_sitelib}/adagios/contrib/lib"  "%{buildroot}%{_localstatedir}/lib/adagios/contrib"
+cp -r "%{buildroot}%{python_sitelib}/usr/lib/python3.9/site-packages/adagios/contrib/lib"  "%{buildroot}%{_localstatedir}/lib/adagios/contrib"
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
+%exclude %dir %{_sysconfdir}/sudoers.d
+%exclude %dir /usr/lib
 %defattr(-,root,root)
-%doc README.md
+# %doc README.md
 %{python_sitelib}/*
 %{_localstatedir}/lib/adagios/contrib/*
 %attr(0644, root, root) %config(noreplace) %{_sysconfdir}/httpd/conf.d/adagios.conf

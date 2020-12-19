@@ -94,7 +94,7 @@ def network_parents(request):
     c['messages'] = []
     hosts = utils.get_hosts(request, **request.GET)
     host_dict = {}
-    map(lambda x: host_dict.__setitem__(x['name'], x), hosts)
+    list(map(lambda x: host_dict.__setitem__(x['name'], x), hosts))
     c['hosts'] = []
 
     for i in hosts:
@@ -201,8 +201,8 @@ def snippets_log(request):
         object_type = "hostgroup"
         hg = pynag.Model.Hostgroup.objects.get_by_shortname(hostgroup_name)
         hosts = hg.get_effective_hosts()
-        hostnames = map(lambda x: x.host_name, hosts)
-        log = filter(lambda x: x['host_name'] in hostnames, log)
+        hostnames = [x.host_name for x in hosts]
+        log = [x for x in log if x['host_name'] in hostnames]
     elif host_name:
         object_type = "host"
     else:
@@ -313,7 +313,7 @@ def service_detail(request, host_name, service_description):
     # Get a complete list of network parents
     try:
         c['network_parents'] = reversed(_get_network_parents(request, host_name))
-    except Exception, e:
+    except Exception as e:
         c['errors'].append(e)
 
     # Lets get some graphs
@@ -321,7 +321,7 @@ def service_detail(request, host_name, service_description):
         try:
             tmp = run_pnp("json", host=host_name)
             tmp = json.loads(tmp)
-        except Exception, e:
+        except Exception as e:
             tmp = []
             c['pnp4nagios_error'] = e
         c['graph_urls'] = tmp
@@ -339,7 +339,7 @@ def service_detail(request, host_name, service_description):
         for graph in c['graphite']:
             if graph['css_id'] == adagios.settings.GRAPHITE_DEFAULT_TAB:
                 default = {}
-                for k,v in graph['metrics'].items():
+                for k,v in list(graph['metrics'].items()):
                     default[k] = v
                 c['graphite_default'] = default
     
@@ -364,7 +364,7 @@ def _get_network_parents(request, host_name):
     result = []
     backend = request.GET.get('backend', None)
     livestatus = adagios.status.utils.livestatus(request)
-    if isinstance(host_name, unicode):
+    if isinstance(host_name, str):
         host_name = smart_str(host_name)
 
     if isinstance(host_name, str):
@@ -376,12 +376,12 @@ def _get_network_parents(request, host_name):
             'host_name must be str or dict (got %s)' % type(host_name))
     parent_names = host['parents']
     while len(parent_names) > 0:
-        parents = map(lambda x: livestatus.get_host(x, backend), parent_names)
+        parents = [livestatus.get_host(x, backend) for x in parent_names]
 
         # generate a list of grandparent names:
         grand_parents = set()
         for i in parents:
-            map(lambda x: grand_parents.add(x), i.get('parents'))
+            list(map(lambda x: grand_parents.add(x), i.get('parents')))
         result.append(parents)
         parent_names = list(grand_parents)
     return result
@@ -408,7 +408,7 @@ def hostgroup_detail(request, hostgroup_name):
     subgroups = subgroups.split(',')
     if subgroups == ['']:
         subgroups = []
-    c['hostgroups'] = map(lambda x: livestatus.get_hostgroups('Filter: name = %s' % x)[0], subgroups)
+    c['hostgroups'] = [livestatus.get_hostgroups('Filter: name = %s' % x)[0] for x in subgroups]
     _add_statistics_to_hostgroups(c['hostgroups'])
 
     return render_to_response('status_hostgroup.html', c, context_instance=RequestContext(request))
@@ -424,8 +424,8 @@ def _add_statistics_to_hostgroups(hostgroups):
     hostgroup_parentgroups = defaultdict(set)
     hostgroup_childgroups = pynag.Model.ObjectRelations.hostgroup_hostgroups
 
-    for hostgroup, subgroups in hostgroup_childgroups.items():
-        map(lambda x: hostgroup_parentgroups[x].add(hostgroup), subgroups)
+    for hostgroup, subgroups in list(hostgroup_childgroups.items()):
+        list(map(lambda x: hostgroup_parentgroups[x].add(hostgroup), subgroups))
 
     for i in hostgroups:
         i['child_hostgroups'] = hostgroup_childgroups[i['name']]
@@ -486,8 +486,8 @@ def status_hostgroups(request):
     hostgroup_parentgroups = defaultdict(set)
     hostgroup_childgroups = pynag.Model.ObjectRelations.hostgroup_hostgroups
 
-    for hostgroup, subgroups in hostgroup_childgroups.items():
-        map(lambda x: hostgroup_parentgroups[x].add(hostgroup), subgroups)
+    for hostgroup, subgroups in list(hostgroup_childgroups.items()):
+        list(map(lambda x: hostgroup_parentgroups[x].add(hostgroup), subgroups))
 
     for i in hostgroups:
         i['child_hostgroups'] = hostgroup_childgroups[i['name']]
@@ -667,7 +667,7 @@ def test_livestatus(request):
         columns = ""
         limit = request.GET.get('limit')
         run_query = False
-        for k, v in request.GET.items():
+        for k, v in list(request.GET.items()):
             if k == "submit":
                 run_query = True
             if k.startswith('check_'):
@@ -681,7 +681,7 @@ def test_livestatus(request):
         if run_query is True:
             c['results'] = livestatus.query(*query)
             c['query'] = livestatus.last_query
-            c['header'] = c['results'][0].keys()
+            c['header'] = list(c['results'][0].keys())
 
     return render_to_response('test_livestatus.html', c, context_instance=RequestContext(request))
 
@@ -743,12 +743,11 @@ def _status_combined(request, optimized=False):
     if service_totals == 0:
         c['service_status'] = 0
     else:
-        c['service_status'] = map(
-            lambda x: 100 * x / service_totals, service_status)
+        c['service_status'] = [100 * x / service_totals for x in service_status]
     if host_totals == 0:
         c['host_status'] = 0
     else:
-        c['host_status'] = map(lambda x: 100 * x / host_totals, host_status)
+        c['host_status'] = [100 * x / host_totals for x in host_status]
     return c
 
 
@@ -832,7 +831,7 @@ def state_history(request):
         services[short_name]['log'].append(i)
         services[short_name]['worst_logfile_state'] = max(
             services[short_name]['worst_logfile_state'], i['state'])
-    for service in services.values():
+    for service in list(services.values()):
         last_item = None
         service['sla'] = float(0)
         service['num_problems'] = 0
@@ -914,7 +913,7 @@ def _status_log(request):
     # Any querystring parameters we will treat as a search string to get_log_entries, but we need to massage them
     # a little bit first
     kwargs = {}
-    for k, v in request.GET.items():
+    for k, v in list(request.GET.items()):
         if k == 'search':
             k = 'search'
         elif k in (
@@ -931,7 +930,7 @@ def _status_log(request):
     c['log'].reverse()
     c['logs'] = {'all': []}
     for line in c['log']:
-        if line['class_name'] not in c['logs'].keys():
+        if line['class_name'] not in list(c['logs'].keys()):
             c['logs'][line['class_name']] = []
         c['logs'][line['class_name']].append(line)
         c['logs']['all'].append(line)
@@ -994,7 +993,7 @@ def perfdata(request):
     perfdata = utils.get_services(request, fields=fields, **request.GET)
     for i in perfdata:
         metrics = pynag.Utils.PerfData(i['perf_data']).metrics
-        metrics = filter(lambda x: x.is_valid(), metrics)
+        metrics = [x for x in metrics if x.is_valid()]
         i['metrics'] = metrics
 
     c['perfdata'] = perfdata
@@ -1161,7 +1160,7 @@ def perfdata2(request):
         metric_set = set()
         for i in services:
             perfdata = pynag.Utils.PerfData(i.get('perf_data', ''))
-            map(lambda x: metric_set.add(x.label), perfdata.metrics)
+            list(map(lambda x: metric_set.add(x.label), perfdata.metrics))
         interesting_metrics = sorted(list(metric_set))
     else:
         interesting_metrics = interesting_metrics.split(',')
@@ -1170,8 +1169,8 @@ def perfdata2(request):
     for service in services:
         perfdata = pynag.Utils.PerfData(service['perf_data'])
         null_metric = pynag.Utils.PerfDataMetric()
-        metrics = map(lambda x: perfdata.get_perfdatametric(
-            x) or null_metric, interesting_metrics)
+        metrics = [perfdata.get_perfdatametric(
+            x) or null_metric for x in interesting_metrics]
         #metrics = filter(lambda x: x.is_valid(), metrics)
         service['metrics'] = metrics
 
@@ -1213,6 +1212,6 @@ def backends(request):
     """ Display a list of available backends and their connection status """
     livestatus = adagios.status.utils.livestatus(request)
     backends = livestatus.get_backends()
-    for i, v in backends.items():
+    for i, v in list(backends.items()):
         v.test(raise_error=False)
     return render_to_response('status_backends.html', locals(), context_instance=RequestContext(request))

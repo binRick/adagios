@@ -57,7 +57,7 @@ parser.add_option('--verbose', help="verbose output", dest="verbose", action="st
 
 def verbose(message):
     if options.verbose:
-        print message
+        print(message)
 
 
 def businessprocess_to_html(process_name, process_type='businessprocess'):
@@ -132,5 +132,5 @@ if not processlist:
     parser.error("Either provide business process name or specify --all")
 
 for i in processlist:
-    print "doing ", i
+    print("doing ", i)
     businessprocess_to_html(i)

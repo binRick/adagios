@@ -43,11 +43,11 @@ def get_filelist(path):
             elif os.path.isdir(relative_path):
                 directories_to_check.append(relative_path)
             else:
-                print "what am i?", i
+                print("what am i?", i)
     return files
 
 template_files = get_filelist('adagios')
-data_files = map(lambda x: x.replace('adagios/', '', 1), template_files)
+data_files = [x.replace('adagios/', '', 1) for x in template_files]
 
 
 class adagios_build(build):

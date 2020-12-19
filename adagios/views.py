@@ -45,7 +45,7 @@ def adagios_decorator(view_func):
             time_now = time.ctime()
             duration = end_time - start_time
             return result
-        except Exception, e:
+        except Exception as e:
             c = {}
             c['exception'] = str(e)
             c['exception_type'] = str(type(e).__name__)
